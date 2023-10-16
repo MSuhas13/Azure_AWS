@@ -1,0 +1,40 @@
+parameters:
+- name: terraformAction
+  displayName: 'Terraform Action'
+  type: string
+  default: 'destroy'
+  values:
+    - 'apply'
+    - 'destroy'
+variables:
+  awsRegion: 'us-east-1'
+pool:
+  vmImage: ubuntu-latest
+steps:
+- task: TerraformTaskV4@4
+  inputs:
+    provider: 'aws'
+    command: 'init'
+    backendServiceAWS: 'IAC_terraform'
+    backendAWSBucketName: 'mykcbucket12'
+    backendAWSKey: 'PK1'
+- task: TerraformTaskV4@4
+  inputs:
+    provider: 'aws'
+    command: 'plan'
+    environmentServiceNameAWS: 'IAC_terraform'
+    commandOptions: '-out=tfplan'
+- task: TerraformTaskV4@4
+  condition: eq('${{ parameters.terraformAction }}', 'apply')
+  inputs:
+    provider: 'aws'
+    command: 'apply'
+    environmentServiceNameAWS: 'IAC_terraform'
+    commandOptions: '-input=false tfplan'
+- task: TerraformTaskV4@4
+  condition: eq('${{ parameters.terraformAction }}', 'destroy')
+  inputs:
+    provider: 'aws'
+    command: 'destroy'
+    environmentServiceNameAWS: 'IAC_terraform'
+    commandOptions: '-input=false -auto-approve -target=plan.tfplan -var "aws_region=$(awsRegion)"'
